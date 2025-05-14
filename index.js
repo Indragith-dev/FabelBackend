@@ -21,8 +21,12 @@ app.post('/send-email', async (req, res) => {
       sender: { email: email, name: name },
       to: [{ email: process.env.CLIENT_EMAIL }],
       subject: 'New Enquiry Form Submission',
-      htmlContent: ``
-    //   textContent: `Message from ${name} (${email}):\n${message}`
+      htmlContent:  `
+      <h3>New Enquiry Received</h3>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Message:</strong> ${message}</p>
+    `
     });
     res.status(200).send({ message: 'Email sent successfully' });
   } catch (error) {
