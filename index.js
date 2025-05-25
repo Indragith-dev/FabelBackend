@@ -11,7 +11,7 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.post('/send-email', async (req, res) => {
-  const { name, email, message } = req.body;
+  const { name, email, phone, message } = req.body;
 
   const brevo = new SibApiV3Sdk.TransactionalEmailsApi();
   brevo.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
@@ -210,19 +210,19 @@ app.post('/send-email', async (req, res) => {
 																	<tbody style="vertical-align: top; font-size: 16px; line-height: 1.2; mso-line-height-alt: 19px;">
 																		<tr>
 																			<td width="50%" style="padding: 10px; word-break: break-word; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; border-left: 1px solid transparent;"><strong>Name</strong></td>
-																			<td width="50%" style="padding: 10px; word-break: break-word; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; border-left: 1px solid transparent;">{name}</td>
+																			<td width="50%" style="padding: 10px; word-break: break-word; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; border-left: 1px solid transparent;">${name}</td>
 																		</tr>
 																		<tr>
 																			<td width="50%" style="padding: 10px; word-break: break-word; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; border-left: 1px solid transparent;"><strong>Email</strong></td>
-																			<td width="50%" style="padding: 10px; word-break: break-word; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; border-left: 1px solid transparent;">{email}</td>
+																			<td width="50%" style="padding: 10px; word-break: break-word; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; border-left: 1px solid transparent;">${email}</td>
 																		</tr>
 																		<tr>
 																			<td width="50%" style="padding: 10px; word-break: break-word; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; border-left: 1px solid transparent;"><strong>Phone No</strong></td>
-																			<td width="50%" style="padding: 10px; word-break: break-word; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; border-left: 1px solid transparent;">{phone}</td>
+																			<td width="50%" style="padding: 10px; word-break: break-word; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; border-left: 1px solid transparent;">${phone}</td>
 																		</tr>
 																		<tr>
 																			<td width="50%" style="padding: 10px; word-break: break-word; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; border-left: 1px solid transparent;"><strong>Message</strong></td>
-																			<td width="50%" style="padding: 10px; word-break: break-word; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; border-left: 1px solid transparent;">{message}</td>
+																			<td width="50%" style="padding: 10px; word-break: break-word; border-top: 1px solid transparent; border-right: 1px solid transparent; border-bottom: 1px solid transparent; border-left: 1px solid transparent;">${message}</td>
 																		</tr>
 																	</tbody>
 																</table>
