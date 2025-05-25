@@ -168,7 +168,7 @@ app.post('/send-email', async (req, res) => {
 														<tr>
 															<td class="pad" style="padding-top:20px;">
 																<div style="color:#f65c03;direction:ltr;font-family:Open Sans, Helvetica Neue, Helvetica, Arial, sans-serif;font-size:18px;font-weight:700;letter-spacing:0px;line-height:1.2;text-align:center;mso-line-height-alt:22px;">
-																	<p style="margin: 0;">Cescift - New enquiry request:</p>
+																	<p style="margin: 0;">Cescift - New Enquiry Alert!</p>
 																</div>
 															</td>
 														</tr>
