@@ -11,17 +11,21 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.post('/send-email', async (req, res) => {
-  const { name, email, phone, message } = req.body;
+  const { name, email, phone, message, isFabel } = req.body;
 
   const brevo = new SibApiV3Sdk.TransactionalEmailsApi();
   brevo.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
 
+  // Determine company name and email based on isFabel flag
+  const companyName = isFabel ? 'Fabel' : 'Cescift';
+  const recipientEmail = isFabel ? process.env.FABEL_EMAIL : process.env.CESCIFT_EMAIL;
+
   try {
     await brevo.sendTransacEmail({
       sender: { email: email, name: name },
-      to: [{ email: process.env.CLIENT_EMAIL }],
+      to: [{ email: recipientEmail }],
       subject: 'New Enquiry Form Submission',
-      htmlContent:  `
+      htmlContent: `
       <!DOCTYPE html>
 <html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="en-US">
 
@@ -168,7 +172,7 @@ app.post('/send-email', async (req, res) => {
 														<tr>
 															<td class="pad" style="padding-top:20px;">
 																<div style="color:#f65c03;direction:ltr;font-family:Open Sans, Helvetica Neue, Helvetica, Arial, sans-serif;font-size:18px;font-weight:700;letter-spacing:0px;line-height:1.2;text-align:center;mso-line-height-alt:22px;">
-																	<p style="margin: 0;">Cescift - New Enquiry Alert!</p>
+																	<p style="margin: 0;">${companyName} - New Enquiry Alert!</p>
 																</div>
 															</td>
 														</tr>
@@ -249,7 +253,7 @@ app.post('/send-email', async (req, res) => {
 														<tr>
 															<td class="pad" style="text-align:center;">
 																<div class="alignment" align="center"><a href="tel:${phone}" target="_blank" style="color:#ffffff;text-decoration:none;"><!--[if mso]>
-<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word"  href="tel:9747770467"  style="height:42px;width:187px;v-text-anchor:middle;" arcsize="72%" fillcolor="#f65c03">
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word"  href="tel:${phone}"  style="height:42px;width:187px;v-text-anchor:middle;" arcsize="72%" fillcolor="#f65c03">
 <v:stroke dashstyle="Solid" weight="0px" color="#f65c03"/>
 <w:anchorlock/>
 <v:textbox inset="0px,0px,0px,0px">
