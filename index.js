@@ -20,8 +20,12 @@ app.post('/send-email', async (req, res) => {
 
   const isFabelEmail = Boolean(isFabel);
 
-  const brevo = new SibApiV3Sdk.TransactionalEmailsApi();
-  brevo.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
+  // Initialize API client
+  const defaultClient = SibApiV3Sdk.ApiClient.instance;
+  const apiKey = defaultClient.authentications['api-key'];
+  apiKey.apiKey = process.env.BREVO_API_KEY;
+
+  const apiInstance = new SibApiV3Sdk.EmailCampaignsApi();
 
   // Determine company name and email based on isFabel flag
   const companyName = isFabelEmail ? 'Fabel' : 'Cescift';
@@ -34,10 +38,14 @@ app.post('/send-email', async (req, res) => {
   }
 
   try {
-    const emailData = {
-      sender: { email: email, name: name },
-      to: [{ email: recipientEmail }], // Fixed: was [{}] before
-      subject: `New Enquiry Form Submission - ${companyName}`,
+    const emailCampaign = {
+      name: `Contact Form - ${name} - ${Date.now()}`,
+      subject: `New Enquiry Form Submission from ${name} - ${companyName}`,
+      sender: {
+        name: companyName,
+        email: process.env.SENDER_EMAIL || 'noreply@yourdomain.com'
+      },
+      replyTo: email,
       htmlContent: `
       <!DOCTYPE html>
 <html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="en-US">
@@ -186,6 +194,7 @@ app.post('/send-email', async (req, res) => {
 															<td class="pad" style="padding-top:20px;">
 																<div style="color:#f65c03;direction:ltr;font-family:Open Sans, Helvetica Neue, Helvetica, Arial, sans-serif;font-size:18px;font-weight:700;letter-spacing:0px;line-height:1.2;text-align:center;mso-line-height-alt:22px;">
 																	<p style="margin: 0;">${companyName} - New Enquiry Alert!</p>
+																	<p style="margin: 10px 0 0 0; font-size: 14px; font-weight: 400;">From: ${name}</p>
 																</div>
 															</td>
 														</tr>
@@ -291,17 +300,39 @@ app.post('/send-email', async (req, res) => {
 </body>
 
 </html>
-    `
+      `,
+      recipients: {
+        listIds: [], // Empty for one-off emails
+        exclusionListIds: []
+      }
     };
 
-    console.log('Sending email with data:', {
-      sender: emailData.sender,
-      to: emailData.to,
-      subject: emailData.subject
+    console.log('Creating email campaign with data:', {
+      name: emailCampaign.name,
+      subject: emailCampaign.subject,
+      sender: emailCampaign.sender
     });
 
-    await brevo.sendTransacEmail(emailData);
+    // Create the campaign
+    const campaign = await apiInstance.createEmailCampaign(emailCampaign);
     
+    // Send immediately to specific recipient
+    const sendData = {
+      emailTo: [recipientEmail],
+      messageVersions: [
+        {
+          to: { 
+            [recipientEmail]: {
+              name: companyName
+            }
+          }
+        }
+      ]
+    };
+
+    await apiInstance.sendEmailCampaignNow(campaign.id, sendData);
+    
+    console.log('Email campaign sent successfully');
     res.status(200).json({ message: 'Email sent successfully' });
   } catch (error) {
     console.error('Email sending error:', error);
