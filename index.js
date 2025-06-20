@@ -13,12 +13,14 @@ app.use(bodyParser.json());
 app.post('/send-email', async (req, res) => {
   const { name, email, phone, message, isFabel } = req.body;
 
+   const isFabelEmail = Boolean(isFabel);
+
   const brevo = new SibApiV3Sdk.TransactionalEmailsApi();
   brevo.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
 
   // Determine company name and email based on isFabel flag
-  const companyName = isFabel ? 'Fabel' : 'Cescift';
-  const recipientEmail = isFabel ? process.env.FABEL_EMAIL : process.env.CESCIFT_EMAIL;
+  const companyName = isFabelEmail ? 'Fabel' : 'Cescift';
+  const recipientEmail = isFabelEmail ? process.env.FABEL_EMAIL : process.env.CESCIFT_EMAIL;
 
   try {
     await brevo.sendTransacEmail({
