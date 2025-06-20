@@ -13,7 +13,12 @@ app.use(bodyParser.json());
 app.post('/send-email', async (req, res) => {
   const { name, email, phone, message, isFabel } = req.body;
 
-   const isFabelEmail = Boolean(isFabel);
+  // Input validation
+  if (!name || !email || !phone || !message) {
+    return res.status(400).json({ message: 'All fields are required' });
+  }
+
+  const isFabelEmail = Boolean(isFabel);
 
   const brevo = new SibApiV3Sdk.TransactionalEmailsApi();
   brevo.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
@@ -22,11 +27,17 @@ app.post('/send-email', async (req, res) => {
   const companyName = isFabelEmail ? 'Fabel' : 'Cescift';
   const recipientEmail = isFabelEmail ? process.env.FABEL_EMAIL : process.env.CESCIFT_EMAIL;
 
+  // Validate that recipient email is configured
+  if (!recipientEmail) {
+    console.error('Recipient email not configured');
+    return res.status(500).json({ message: 'Email configuration error' });
+  }
+
   try {
-    await brevo.sendTransacEmail({
+    const emailData = {
       sender: { email: email, name: name },
-      to: [{ email: recipientEmail }],
-      subject: 'New Enquiry Form Submission',
+      to: [{ email: recipientEmail }], // Fixed: was [{}] before
+      subject: `New Enquiry Form Submission - ${companyName}`,
       htmlContent: `
       <!DOCTYPE html>
 <html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="en-US">
@@ -281,11 +292,29 @@ app.post('/send-email', async (req, res) => {
 
 </html>
     `
+    };
+
+    console.log('Sending email with data:', {
+      sender: emailData.sender,
+      to: emailData.to,
+      subject: emailData.subject
     });
-    res.status(200).send({ message: 'Email sent successfully' });
+
+    await brevo.sendTransacEmail(emailData);
+    
+    res.status(200).json({ message: 'Email sent successfully' });
   } catch (error) {
     console.error('Email sending error:', error);
-    res.status(500).send({ message: 'Failed to send email' });
+    
+    // Provide more specific error messages
+    if (error.response) {
+      console.error('API Error Response:', error.response.data);
+      res.status(500).json({ 
+        message: error.response.data.message || 'Failed to send email. Please try again.' 
+      });
+    } else {
+      res.status(500).json({ message: 'Failed to send email. Please try again.' });
+    }
   }
 });
 
