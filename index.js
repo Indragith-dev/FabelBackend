@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const SibApiV3Sdk = require('@sendinblue/client');
+const SibApiV3Sdk = require('sib-api-v3-sdk');
 require('dotenv').config();
 
 const app = express();
@@ -21,11 +21,11 @@ app.post('/send-email', async (req, res) => {
   const isFabelEmail = Boolean(isFabel);
 
   // Initialize API client
-  const defaultClient = SibApiV3Sdk.ApiClient.instance;
-  const apiKey = defaultClient.authentications['api-key'];
+  let defaultClient = SibApiV3Sdk.ApiClient.instance;
+  let apiKey = defaultClient.authentications['api-key'];
   apiKey.apiKey = process.env.BREVO_API_KEY;
 
-  const apiInstance = new SibApiV3Sdk.EmailCampaignsApi();
+  const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
 
   // Determine company name and email based on isFabel flag
   const companyName = isFabelEmail ? 'Fabel' : 'Cescift';
@@ -37,16 +37,33 @@ app.post('/send-email', async (req, res) => {
     return res.status(500).json({ message: 'Email configuration error' });
   }
 
+  // Validate API key
+  if (!process.env.BREVO_API_KEY) {
+    console.error('BREVO_API_KEY not configured');
+    return res.status(500).json({ message: 'Email service configuration error' });
+  }
+
   try {
-    const emailCampaign = {
-      name: `Contact Form - ${name} - ${Date.now()}`,
-      subject: `New Enquiry Form Submission from ${name} - ${companyName}`,
-      sender: {
-        name: companyName,
-        email: process.env.SENDER_EMAIL || 'noreply@yourdomain.com'
-      },
-      replyTo: email,
-      htmlContent: `
+    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+    
+    sendSmtpEmail.sender = {
+      name: companyName,
+      email: process.env.SENDER_EMAIL || 'noreply@yourdomain.com'
+    };
+    
+    sendSmtpEmail.to = [{
+      email: recipientEmail,
+      name: companyName
+    }];
+    
+    sendSmtpEmail.replyTo = {
+      email: email,
+      name: name
+    };
+    
+    sendSmtpEmail.subject = `New Enquiry Form Submission from ${name} - ${companyName}`;
+    
+    sendSmtpEmail.htmlContent = `
       <!DOCTYPE html>
 <html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="en-US">
 
@@ -300,39 +317,18 @@ app.post('/send-email', async (req, res) => {
 </body>
 
 </html>
-      `,
-      recipients: {
-        listIds: [], // Empty for one-off emails
-        exclusionListIds: []
-      }
-    };
+    `;
 
-    console.log('Creating email campaign with data:', {
-      name: emailCampaign.name,
-      subject: emailCampaign.subject,
-      sender: emailCampaign.sender
+    console.log('Sending email with data:', {
+      subject: sendSmtpEmail.subject,
+      sender: sendSmtpEmail.sender,
+      recipient: recipientEmail
     });
 
-    // Create the campaign
-    const campaign = await apiInstance.createEmailCampaign(emailCampaign);
+    // Send the email
+    const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
     
-    // Send immediately to specific recipient
-    const sendData = {
-      emailTo: [recipientEmail],
-      messageVersions: [
-        {
-          to: { 
-            [recipientEmail]: {
-              name: companyName
-            }
-          }
-        }
-      ]
-    };
-
-    await apiInstance.sendEmailCampaignNow(campaign.id, sendData);
-    
-    console.log('Email campaign sent successfully');
+    console.log('Email sent successfully:', result);
     res.status(200).json({ message: 'Email sent successfully' });
   } catch (error) {
     console.error('Email sending error:', error);
