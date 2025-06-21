@@ -1,7 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
-const SibApiV3Sdk = require('sib-api-v3-sdk');
+const SibApiV3Sdk = require('@sendinblue/client');
 require('dotenv').config();
 
 const app = express();
@@ -11,59 +11,17 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.post('/send-email', async (req, res) => {
-  const { name, email, phone, message, isFabel } = req.body;
+  const { name, email, phone, message } = req.body;
 
-  // Input validation
-  if (!name || !email || !phone || !message) {
-    return res.status(400).json({ message: 'All fields are required' });
-  }
-
-  const isFabelEmail = Boolean(isFabel);
-
-  // Initialize API client
-  let defaultClient = SibApiV3Sdk.ApiClient.instance;
-  let apiKey = defaultClient.authentications['api-key'];
-  apiKey.apiKey = process.env.BREVO_API_KEY;
-
-  const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
-
-  // Determine company name and email based on isFabel flag
-  const companyName = isFabelEmail ? 'Fabel' : 'Cescift';
-  const recipientEmail = isFabelEmail ? process.env.FABEL_EMAIL : process.env.CESCIFT_EMAIL;
-
-  // Validate that recipient email is configured
-  if (!recipientEmail) {
-    console.error('Recipient email not configured');
-    return res.status(500).json({ message: 'Email configuration error' });
-  }
-
-  // Validate API key
-  if (!process.env.BREVO_API_KEY) {
-    console.error('BREVO_API_KEY not configured');
-    return res.status(500).json({ message: 'Email service configuration error' });
-  }
+  const brevo = new SibApiV3Sdk.TransactionalEmailsApi();
+  brevo.setApiKey(SibApiV3Sdk.TransactionalEmailsApiApiKeys.apiKey, process.env.BREVO_API_KEY);
 
   try {
-    const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
-    
-    sendSmtpEmail.sender = {
-      name: companyName,
-      email: process.env.SENDER_EMAIL || 'noreply@yourdomain.com'
-    };
-    
-    sendSmtpEmail.to = [{
-      email: recipientEmail,
-      name: companyName
-    }];
-    
-    sendSmtpEmail.replyTo = {
-      email: email,
-      name: name
-    };
-    
-    sendSmtpEmail.subject = `New Enquiry Form Submission from ${name} - ${companyName}`;
-    
-    sendSmtpEmail.htmlContent = `
+    await brevo.sendTransacEmail({
+      sender: { email: email, name: name },
+      to: [{ email: process.env.CLIENT_EMAIL }],
+      subject: 'New Enquiry Form Submission',
+      htmlContent:  `
       <!DOCTYPE html>
 <html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office" lang="en-US">
 
@@ -210,8 +168,7 @@ app.post('/send-email', async (req, res) => {
 														<tr>
 															<td class="pad" style="padding-top:20px;">
 																<div style="color:#f65c03;direction:ltr;font-family:Open Sans, Helvetica Neue, Helvetica, Arial, sans-serif;font-size:18px;font-weight:700;letter-spacing:0px;line-height:1.2;text-align:center;mso-line-height-alt:22px;">
-																	<p style="margin: 0;">${companyName} - New Enquiry Alert!</p>
-																	<p style="margin: 10px 0 0 0; font-size: 14px; font-weight: 400;">From: ${name}</p>
+																	<p style="margin: 0;">Cescift - New Enquiry Alert!</p>
 																</div>
 															</td>
 														</tr>
@@ -292,7 +249,7 @@ app.post('/send-email', async (req, res) => {
 														<tr>
 															<td class="pad" style="text-align:center;">
 																<div class="alignment" align="center"><a href="tel:${phone}" target="_blank" style="color:#ffffff;text-decoration:none;"><!--[if mso]>
-<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word"  href="tel:${phone}"  style="height:42px;width:187px;v-text-anchor:middle;" arcsize="72%" fillcolor="#f65c03">
+<v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word"  href="tel:9747770467"  style="height:42px;width:187px;v-text-anchor:middle;" arcsize="72%" fillcolor="#f65c03">
 <v:stroke dashstyle="Solid" weight="0px" color="#f65c03"/>
 <w:anchorlock/>
 <v:textbox inset="0px,0px,0px,0px">
@@ -317,31 +274,12 @@ app.post('/send-email', async (req, res) => {
 </body>
 
 </html>
-    `;
-
-    console.log('Sending email with data:', {
-      subject: sendSmtpEmail.subject,
-      sender: sendSmtpEmail.sender,
-      recipient: recipientEmail
+    `
     });
-
-    // Send the email
-    const result = await apiInstance.sendTransacEmail(sendSmtpEmail);
-    
-    console.log('Email sent successfully:', result);
-    res.status(200).json({ message: 'Email sent successfully' });
+    res.status(200).send({ message: 'Email sent successfully' });
   } catch (error) {
     console.error('Email sending error:', error);
-    
-    // Provide more specific error messages
-    if (error.response) {
-      console.error('API Error Response:', error.response.data);
-      res.status(500).json({ 
-        message: error.response.data.message || 'Failed to send email. Please try again.' 
-      });
-    } else {
-      res.status(500).json({ message: 'Failed to send email. Please try again.' });
-    }
+    res.status(500).send({ message: 'Failed to send email' });
   }
 });
 
